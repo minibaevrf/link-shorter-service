@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>LinkShort</title>
+    <link rel="shortcut icon" href="{{ url_for('static', filename='favicon.ico') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+    <script type="text/javascript" src="{{ url_for('static', filename='js/main.js') }}"></script>
+<body>
+<div class="main-wrapper">
+
+    <h1>Create Click-Worthy Links</h1>
+    <input class="link-input" id="linkInput" type="text" placeholder="Shorten your link"
+           onchange="MainFormLogic.DisplayLinkBtn()">
+    <br>
+    <button class="getlnk-btn" id="getlnkBtn" onclick=MainFormLogic.GetLink()>Get link</button>
+    <h2 id="shortLinkResult">Result: <a target="_blank" href=""></a></h2>
+
+    {% block not_found %}{% endblock %}
+
+    {% block error %}{% endblock %}
+</div>
+</body>
+</html>
