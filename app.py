@@ -6,7 +6,7 @@ from logger import Logger
 logger = Logger.create_logger()
 app = Flask(__name__)
 
-redis_storage_provider = redis.Redis(host='localhost', port=6379)
+redis_storage_provider = redis.Redis(host='redis', port=6379)
 
 
 @app.route('/')
