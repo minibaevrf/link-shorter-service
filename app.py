@@ -1,9 +1,12 @@
+import redis
 from flask import Flask, render_template, request, redirect
 from link_shorter import LinkShorter
 from logger import Logger
 
 logger = Logger.create_logger()
 app = Flask(__name__)
+
+redis_storage_provider = redis.Redis(host='localhost', port=6379)
 
 
 @app.route('/')
@@ -14,8 +17,10 @@ def main():
 @app.route('/short_link', methods=['POST'])
 def short_link():
     try:
+        link_shorter = LinkShorter(redis_storage_provider)
+
         source_link = request.form['link']
-        result = LinkShorter.save_link(source_link)
+        result = link_shorter.save_link(source_link)
 
         return request.host_url + result
     except Exception as ex:
@@ -29,7 +34,8 @@ def redirect_short_link(redirect_link):
         return
 
     try:
-        result = LinkShorter.get_source_link(redirect_link)
+        link_shorter = LinkShorter(redis_storage_provider)
+        result = link_shorter.get_source_link(redirect_link)
 
         if result is not None:
             return redirect(result, code=302)

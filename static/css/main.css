@@ -4,10 +4,9 @@ body {
 
 .main-wrapper {
     text-align: center;
-    margin: auto;
     max-width: 60%;
     padding: 4rem 2rem;
-    margin-bottom: 2rem;
+    margin: auto auto 2rem;
     background-color: #e9ecef;
     border-radius: .3rem;
 }
@@ -42,14 +41,13 @@ body {
     -moz-user-select: none;
     -ms-user-select: none;
     user-select: none;
-    border: 1px solid transparent;
+    border: 1px solid #6c757d;
     padding: .375rem .75rem;
     font-size: 1rem;
     line-height: 1.5;
     border-radius: .25rem;
     color: #fff;
     background-color: #6c757d;
-    border-color: #6c757d;
     cursor: pointer;
 
     visibility: hidden;
@@ -86,4 +84,18 @@ body {
     color: #721c24;
     background-color: #f8d7da;
     border-color: #f5c6cb;
+}
+
+.home-btn {
+    display: inline-block;
+    padding-top: .3125rem;
+    padding-bottom: .3125rem;
+    margin-right: 1rem;
+    font-size: 1.25rem;
+    line-height: inherit;
+    white-space: nowrap;
+    cursor: pointer;
+    color: #007bff;
+    text-decoration: none;
+    background-color: transparent;
 }
