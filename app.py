@@ -1,23 +1,34 @@
 import redis
 from flask import Flask, render_template, request, redirect
 from link_shorter import LinkShorter
-from logger import Logger
+from applogger import AppLogger
 
-logger = Logger.create_logger()
+logger = AppLogger.create_logger()
 app = Flask(__name__)
 
-redis_storage_provider = redis.Redis(host='redis', port=6379)
+redis_storage = redis.Redis(host='redis', port=6379)
 
 
 @app.route('/')
 def main():
+    """Render home/main page.
+
+    Returns:
+      main.html template.
+    """
     return render_template('main.html')
 
 
 @app.route('/short_link', methods=['POST'])
 def short_link():
+    """Post request handler which shorts a given link.
+
+    Returns:
+        Short link of given link based on the current host, otherwise redirect to the error page (rendering
+        error.html) with 500 code.
+    """
     try:
-        link_shorter = LinkShorter(redis_storage_provider)
+        link_shorter = LinkShorter(redis_storage)
 
         source_link = request.form['link']
         result = link_shorter.save_link(source_link)
@@ -30,11 +41,17 @@ def short_link():
 
 @app.route('/<redirect_link>')
 def redirect_short_link(redirect_link):
+    """Redirect the given short link (alias) to the source link.
+
+    Returns:
+        Redirect to the source link, otherwise redirect to the error page (rendering error.html) with 500 code.
+    """
     if redirect_link == 'favicon.ico':
+        # ignore requesting favicon.ico
         return
 
     try:
-        link_shorter = LinkShorter(redis_storage_provider)
+        link_shorter = LinkShorter(redis_storage)
         result = link_shorter.get_source_link(redirect_link)
 
         if result is not None:
@@ -49,4 +66,5 @@ def redirect_short_link(redirect_link):
 
 
 if __name__ == '__main__':
+    """The main point of web service"""
     app.run()

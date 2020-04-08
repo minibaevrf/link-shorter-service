@@ -2,10 +2,16 @@ import logging
 import os
 
 
-class Logger:
+class AppLogger:
+    """Class which used to create a file-logger"""
 
     @staticmethod
     def create_logger():
+        """Creating a file-logger.
+
+        Returns:
+            A logger with initialized FileHandler which writes logs into 'log/logs.log' file.
+        """
         log_filename = 'log/logs.log'
         os.makedirs(os.path.dirname(log_filename), exist_ok=True)
 
