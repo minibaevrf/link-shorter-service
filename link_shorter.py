@@ -1,5 +1,4 @@
-import random
-import string
+import hashlib
 
 
 class LinkShorter:
@@ -15,7 +14,7 @@ class LinkShorter:
         """Inits LinkShorter with passed redis storage."""
         self.__r_storage = redis_storage
 
-    __short_link_len = 8
+    __alias_len = 8
 
     def save_link(self, source_link):
         """Saving source link inside redis storage with alias which will be used as short link.
@@ -26,9 +25,20 @@ class LinkShorter:
         Returns:
             A key of saved source link which can be used as short link.
         """
-        short_link = self.__get_random_str()
-        self.__save_link_in_db(short_link, source_link)
-        return short_link
+        link_hash = self.__get_alias_by_md5_hash(source_link)
+
+        # checking that storage already contains links with the same hash
+        h_len = self.__r_storage.hlen(link_hash)
+
+        if h_len == 0:
+            self.__r_storage.hset(link_hash, format(0, 'x'), source_link)
+            return link_hash
+        else:
+            # set order of stored link in hex format which can be used in alias after hash
+            order = format(h_len, 'x')
+
+            self.__r_storage.hset(link_hash, order, source_link)
+            return link_hash + order
 
     def get_source_link(self, short_link):
         """Extracting of source link from redis storage by given short link.
@@ -39,31 +49,25 @@ class LinkShorter:
         Returns:
             Stored source link, otherwise if storage doesn't contain given short_link(key) - None.
         """
-        if self.__r_storage.exists(short_link):
-            return self.__r_storage.get(short_link)
-        return None
+        order = 0
+        link_hash = short_link
 
-    def __save_link_in_db(self, short_link, source_link):
-        """Utility private method which saves source link(value) into redis storage by short link (key).
+        if len(short_link) != self.__alias_len:
+            order = short_link[self.__alias_len:]
+            link_hash = short_link[:self.__alias_len]
+
+        stored_links = self.__r_storage.hget(link_hash, order)
+
+        return None if stored_links is None else stored_links.decode('utf-8')
+
+    def __get_alias_by_md5_hash(self, link):
+        """Generate alias of source link by MD5 hash of link of given length
 
         Args:
-            short_link: alias(key) of source link.
-            source_link: source link which need to save(value).
-        """
-        self.__r_storage.set(short_link, source_link)
-
-    def __get_random_str(self):
-        """Utility private method which generate unique string to be able to use it as alias(key) for short links.
+            link: link to generate alias.
 
         Returns:
-            Unique string which doesn't use in redis storage as key.
+            An alias of given source link based on md5 hash.
         """
-        pattern = string.ascii_letters + string.digits
-        result = ''.join(random.choice(pattern) for i in range(self.__short_link_len))
-        while True:
-            if not self.__r_storage.exists(result):
-                break
-            else:
-                result = ''.join(random.choice(pattern) for i in range(self.__short_link_len))
-
-        return result
+        link_hash_obj = hashlib.md5(bytes(link, encoding='utf-8'))
+        return link_hash_obj.hexdigest()[:self.__alias_len]
