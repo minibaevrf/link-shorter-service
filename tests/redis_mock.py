@@ -44,3 +44,11 @@ class RedisMock:
 
         # encode value because Redis stores it like that
         self.__storage[link_hash][order] = source_link.encode('utf-8')
+
+    def set(self, key, value):
+        self.__storage[key] = value.encode('utf-8')
+
+    def get(self, key):
+        if key in self.__storage:
+            return self.__storage[key]
+        return None

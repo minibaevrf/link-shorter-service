@@ -1,6 +1,7 @@
 import unittest
 
 from link_shorter import LinkShorter
+from tests.alias_provider_mock import AliasProviderMock
 from tests.redis_mock import RedisMock
 
 
@@ -39,28 +40,59 @@ class LinkShorterTests(unittest.TestCase):
 
         self.assertEqual(saved_link1, test_link)
         self.assertEqual(saved_link2, test_link)
-        self.assertNotEqual(short_link1, short_link2)
+        self.assertEqual(short_link1, short_link2)
 
     def test_save_links_with_same_hash(self):
+        redis_mock = RedisMock()
+        alias_provider_mock = AliasProviderMock()
+
+        link_shorter = LinkShorter(redis_mock, alias_provider_mock)
+
         links_with_same_hash = \
             ['https://sample1.ru',
-             'https://sample1.ru',
-             'https://sample1.ru']
+             'https://sample2.ru',
+             'https://sample3.ru']
 
-        redis_mock = RedisMock()
+        # imitate that this links has one hash set new method
+        mocked_hash_generator = lambda l: "samehash"
+        alias_provider_mock.override_get_alias_by_md5_hash(mocked_hash_generator)
 
         checking_dict = {}
-
-        link_shorter = LinkShorter(redis_mock)
 
         for link in links_with_same_hash:
             alias = link_shorter.save_link(link)
             checking_dict[alias] = link
 
-        self.assertEqual(len(checking_dict), len(links_with_same_hash))
+        # reset overrode method
+        alias_provider_mock.override_get_alias_by_md5_hash(None)
+
+        links_with_diff_hash = \
+            ['https://sample4.ru',
+             'https://sample5.ru',
+             'https://sample6.ru']
+
+        for link in links_with_diff_hash:
+            alias = link_shorter.save_link(link)
+            checking_dict[alias] = link
 
         for k in checking_dict:
             self.assertEqual(checking_dict[k], link_shorter.get_source_link(k))
+
+    def test_save_one_link_with_dif_case(self):
+        redis_mock = RedisMock()
+        link_shorter = LinkShorter(redis_mock)
+
+        test_link1 = 'http://sample1'
+        test_link2 = 'http://sample1'.upper()
+        test_link3 = 'http://SaMpLe1'
+
+        short_link1 = link_shorter.save_link(test_link1)
+        short_link2 = link_shorter.save_link(test_link2)
+        short_link3 = link_shorter.save_link(test_link3)
+
+        self.assertEqual(short_link1, short_link2)
+        self.assertEqual(short_link2, short_link3)
+        self.assertEqual(short_link1, short_link3)
 
 
 if __name__ == '__main__':

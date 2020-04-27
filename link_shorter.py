@@ -1,4 +1,4 @@
-import hashlib
+from alias_provider import AliasProvider
 
 
 class LinkShorter:
@@ -10,11 +10,15 @@ class LinkShorter:
     """
     __r_storage = None
 
-    def __init__(self, redis_storage):
+    __alias_provider = None
+
+    __alias_len = 8
+
+    def __init__(self, redis_storage, alias_provider=None):
         """Inits LinkShorter with passed redis storage."""
         self.__r_storage = redis_storage
 
-    __alias_len = 8
+        self.__alias_provider = AliasProvider(self.__alias_len) if alias_provider is None else alias_provider
 
     def save_link(self, source_link):
         """Saving source link inside redis storage with alias which will be used as short link.
@@ -25,20 +29,34 @@ class LinkShorter:
         Returns:
             A key of saved source link which can be used as short link.
         """
-        link_hash = self.__get_alias_by_md5_hash(source_link)
+
+        # make lower() for source link to ignore case and avoid saving one link multiple times
+        source_link = source_link.lower()
+
+        short_link = self.__get_already_saved_alias(source_link)
+
+        if short_link is not None:
+            return short_link.decode('utf-8')
+
+        link_hash = self.__alias_provider.get_alias_by_md5_hash(source_link)
 
         # checking that storage already contains links with the same hash
         h_len = self.__r_storage.hlen(link_hash)
 
+        order = None
+
         if h_len == 0:
-            self.__r_storage.hset(link_hash, format(0, 'x'), source_link)
-            return link_hash
+            order = format(0, 'x')
+            short_link = link_hash
         else:
             # set order of stored link in hex format which can be used in alias after hash
             order = format(h_len, 'x')
+            short_link = link_hash + order
 
-            self.__r_storage.hset(link_hash, order, source_link)
-            return link_hash + order
+        self.__r_storage.hset(link_hash, order, source_link)
+        self.__save_short_for_reuse(short_link, source_link)
+
+        return short_link
 
     def get_source_link(self, short_link):
         """Extracting of source link from redis storage by given short link.
@@ -60,14 +78,17 @@ class LinkShorter:
 
         return None if stored_links is None else stored_links.decode('utf-8')
 
-    def __get_alias_by_md5_hash(self, link):
-        """Generate alias of source link by MD5 hash of link of given length
+    def __get_already_saved_alias(self, source_link):
+        """Checking that passed source link already exists and contains alias (short link) for it
 
-        Args:
-            link: link to generate alias.
+        Attributes:
+            source_link: source link which need to check.
 
         Returns:
-            An alias of given source link based on md5 hash.
+            Stored alias, otherwise if storage doesn't contain given short_link(key) - None.
         """
-        link_hash_obj = hashlib.md5(bytes(link, encoding='utf-8'))
-        return link_hash_obj.hexdigest()[:self.__alias_len]
+        return self.__r_storage.get(source_link)
+
+    def __save_short_for_reuse(self, short_link, source_link):
+        """Save alias for source link to reuse them for better performance"""
+        self.__r_storage.set(source_link, short_link)
