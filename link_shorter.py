@@ -31,14 +31,14 @@ class LinkShorter:
         """
 
         # make lower() for source link to ignore case and avoid saving one link multiple times
-        source_link = source_link.lower()
+        lower_source_link = source_link.lower()
 
-        short_link = self.__get_already_saved_alias(source_link)
+        short_link = self.__get_already_saved_alias(lower_source_link)
 
         if short_link is not None:
             return short_link.decode('utf-8')
 
-        link_hash = self.__alias_provider.get_alias_by_md5_hash(source_link)
+        link_hash = self.__alias_provider.get_alias_by_md5_hash(lower_source_link)
 
         # checking that storage already contains links with the same hash
         h_len = self.__r_storage.hlen(link_hash)
@@ -53,8 +53,8 @@ class LinkShorter:
             order = format(h_len, 'x')
             short_link = link_hash + order
 
-        self.__r_storage.hset(link_hash, order, source_link)
-        self.__save_short_for_reuse(short_link, source_link)
+        self.__r_storage.hset(link_hash, order, lower_source_link)
+        self.__save_short_for_reuse(short_link, lower_source_link)
 
         return short_link
 
@@ -67,12 +67,15 @@ class LinkShorter:
         Returns:
             Stored source link, otherwise if storage doesn't contain given short_link(key) - None.
         """
-        order = 0
-        link_hash = short_link
+        # make lower() for short link to ignore case
+        lower_short_link = short_link.lower()
 
-        if len(short_link) != self.__alias_len:
-            order = short_link[self.__alias_len:]
-            link_hash = short_link[:self.__alias_len]
+        order = 0
+        link_hash = lower_short_link
+
+        if len(lower_short_link) != self.__alias_len:
+            order = lower_short_link[self.__alias_len:]
+            link_hash = lower_short_link[:self.__alias_len]
 
         stored_links = self.__r_storage.hget(link_hash, order)
 

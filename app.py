@@ -6,6 +6,7 @@ from applogger import AppLogger
 logger = AppLogger.create_logger()
 app = Flask(__name__)
 
+# can be used 'redis_storage = RedisMock()' for local debug without real Redis instance
 redis_storage = redis.Redis(host='redis', port=6379)
 
 

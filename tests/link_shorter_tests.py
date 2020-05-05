@@ -94,6 +94,21 @@ class LinkShorterTests(unittest.TestCase):
         self.assertEqual(short_link2, short_link3)
         self.assertEqual(short_link1, short_link3)
 
+    def test_short_link_with_dif_case(self):
+        redis_mock = RedisMock()
+        link_shorter = LinkShorter(redis_mock)
+
+        test_link = 'http://sample1'
+
+        short_link = link_shorter.save_link(test_link)
+        short_link_upper = short_link.upper()
+
+        result_by_original_short_link = link_shorter.get_source_link(short_link)
+        result_by_upper_short_link = link_shorter.get_source_link(short_link_upper)
+
+        self.assertEqual(test_link, result_by_original_short_link)
+        self.assertEqual(test_link, result_by_upper_short_link)
+
 
 if __name__ == '__main__':
     unittest.main()
